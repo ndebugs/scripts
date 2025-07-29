@@ -33,6 +33,7 @@ init_script() {
 
 DOMAIN=$DOMAIN
 DOMAIN_CONTROLLER=$DOMAIN_CONTROLLER
+USERNAME=$USERNAME
 
 check_ad() {
   ping -c 1 -t $PING_TIMEOUT "\$DOMAIN_CONTROLLER" >/dev/null 2>&1
@@ -51,11 +52,11 @@ fi
 
 if ! check_internet; then
   if klist -s 2>/dev/null; then
-    echo "$(date): No internet. Destroying ticket..."
+    echo "\$(date): Destroying ticket..."
     kdestroy
   fi
 
-  kinit --keychain "$USERNAME@$DOMAIN"
+  kinit --keychain "\$USERNAME@\$DOMAIN"
 fi
 
 EOF
