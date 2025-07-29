@@ -7,7 +7,7 @@ SCRIPT_DIR="$HOME/scripts"
 SCRIPT_PATH="$SCRIPT_DIR/adrefresh.sh"
 LABEL="com.ndebugs.adrefresh"
 PLIST_PATH="$HOME/Library/LaunchAgents/$LABEL.plist"
-INTERVAL=180  # seconds
+INTERVAL=60  # seconds
 PING_TIMEOUT=1
 
 init_password() {
@@ -100,7 +100,7 @@ init_plist() {
 </plist>
 EOF
 
-    echo "Plist created."
+    echo "LaunchAgent plist created."
   fi
 
   # Load LaunchAgent if not already loaded
@@ -137,10 +137,7 @@ install() {
 uninstall() {
   if [ -f "$PLIST_PATH" ]; then
     launchctl unload "$PLIST_PATH"
-
     rm "$PLIST_PATH"
-    rm $HOME/Library/Logs/$LABEL.log
-    rm $HOME/Library/Logs/$LABEL.err
 
     echo "LaunchAgent plist removed."
   fi
@@ -150,7 +147,7 @@ uninstall() {
 
   if [ -f "$SCRIPT_PATH" ]; then
     rm "$SCRIPT_PATH"
-    echo "Refresh script removed."
+    echo "Script removed."
   fi
 }
 
