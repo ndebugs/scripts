@@ -27,7 +27,7 @@ init_script() {
 
   # Generate the refresh script if missing
   if [ ! -f "$SCRIPT_PATH" ]; then
-    echo "Generating $SCRIPT_PATH..."
+    echo "Generating $SCRIPT_PATH ..."
     cat > "$SCRIPT_PATH" <<EOF
 #!/bin/bash
 
@@ -52,7 +52,7 @@ fi
 
 if ! check_internet; then
   if klist -s 2>/dev/null; then
-    echo "\$(date): Destroying ticket..."
+    echo "\$(date): Destroying ticket ..."
     kdestroy
   fi
 
@@ -69,7 +69,7 @@ EOF
 init_plist() {
   # Create LaunchAgent plist if missing
   if [ ! -f "$PLIST_PATH" ]; then
-    echo "Creating LaunchAgent plist..."
+    echo "Creating LaunchAgent plist ..."
     mkdir -p "$HOME/Library/LaunchAgents"
 
     cat > "$PLIST_PATH" <<EOF
@@ -106,7 +106,7 @@ EOF
   # Load LaunchAgent if not already loaded
   if launchctl list | grep "$LABEL"; then
     launchctl unload "$PLIST_PATH"
-    echo "LaunchAgent was already loaded, now reloading..."
+    echo "LaunchAgent was already loaded, now reloading ..."
   fi
 
   launchctl load "$PLIST_PATH"
