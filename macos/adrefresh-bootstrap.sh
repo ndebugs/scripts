@@ -10,18 +10,19 @@ PLIST_PATH="$HOME/Library/LaunchAgents/$LABEL.plist"
 INTERVAL=180  # seconds
 PING_TIMEOUT=1
 
-initPassword() {
+init_password() {
   # Check if password already exists in keychain
-  if ! security find-generic-password -a "$USER" -s "$DOMAIN" >/dev/null 2>&1; then
-    echo "Password not found in keychain for $USER"
+  if ! security find-generic-password -a "$USERNAME" -s "$DOMAIN" >/dev/null 2>&1; then
+    echo "Password not found in keychain for $USERNAME"
     read -s -p "Enter your AD password: " AD_PASSWORD
     echo
-    security add-generic-password -a "$USER" -s "$DOMAIN" -w "$AD_PASSWORD" -T /usr/bin/kinit
+
+    security add-generic-password -a "$USERNAME" -s "$DOMAIN" -w "$AD_PASSWORD" -T /usr/bin/kinit
     echo "Password saved to keychain under service \"$DOMAIN\""
   fi
 }
 
-initScript() {
+init_script() {
   mkdir -p "$SCRIPT_DIR"
 
   # Generate the refresh script if missing
@@ -54,7 +55,7 @@ if ! check_internet; then
     kdestroy
   fi
 
-  kinit --keychain "$USER@$DOMAIN"
+  kinit --keychain "$USERNAME@$DOMAIN"
 fi
 
 EOF
@@ -64,7 +65,7 @@ EOF
   fi
 }
 
-initPlist() {
+init_plist() {
   # Create LaunchAgent plist if missing
   if [ ! -f "$PLIST_PATH" ]; then
     echo "Creating LaunchAgent plist..."
@@ -122,13 +123,17 @@ install() {
   echo "Using domain controller: $DOMAIN_CONTROLLER"
   echo
 
-  initPassword
-  initScript
-  initPlist
+  read -p "Enter AD username [$USER]: " USERNAME
+  USERNAME="${USERNAME:-$USER}"
+  echo "Using AD username: $USERNAME"
+  echo
+
+  init_password
+  init_script
+  init_plist
 }
 
 uninstall() {
-  # Unload and remove plist
   if [ -f "$PLIST_PATH" ]; then
     launchctl unload "$PLIST_PATH"
 
@@ -139,7 +144,9 @@ uninstall() {
     echo "LaunchAgent plist removed."
   fi
 
-  # Optionally remove script
+  [ -f "$HOME/Library/Logs/$LABEL.log" ] && rm "$HOME/Library/Logs/$LABEL.log"
+  [ -f "$HOME/Library/Logs/$LABEL.err" ] && rm "$HOME/Library/Logs/$LABEL.err"
+
   if [ -f "$SCRIPT_PATH" ]; then
     rm "$SCRIPT_PATH"
     echo "Refresh script removed."
