@@ -37,12 +37,12 @@ USERNAME=$USERNAME
 
 check_ad() {
   ping -c 1 -t $PING_TIMEOUT "\$DOMAIN_CONTROLLER" >/dev/null 2>&1
-  return $?
+  return \$?
 }
 
 check_internet() {
   ping -c 1 -t $PING_TIMEOUT 8.8.8.8 >/dev/null 2>&1
-  return $?
+  return \$?
 }
 
 if ! check_ad; then
