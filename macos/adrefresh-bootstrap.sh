@@ -9,6 +9,9 @@ LABEL="com.ndebugs.adrefresh"
 PLIST_PATH="$HOME/Library/LaunchAgents/$LABEL.plist"
 INTERVAL=60  # seconds
 PING_TIMEOUT=1
+LOG_BASE="$HOME/Library/Logs/$LABEL"
+LOG_MAX_SIZE=1048576  # 1 MB
+LOG_MIN_LINES=100
 
 init_password() {
   # Check if password already exists in keychain
@@ -35,30 +38,54 @@ DOMAIN=$DOMAIN
 DOMAIN_CONTROLLER=$DOMAIN_CONTROLLER
 USERNAME=$USERNAME
 
+timestamp() {
+  date '+%Y-%m-%d %H:%M:%S'
+}
+
+check_log() {
+  if [ -f "\$1" ] && [ "\$(stat -f%z "\$1")" -gt "$LOG_MAX_SIZE" ]; then
+    echo "[\$(timestamp)] Log max size exceeded." >> "\$1"
+    tail -n "$LOG_MIN_LINES" "\$1" > "\$1.tmp" && mv "\$1.tmp" "\$1"
+  fi
+}
+
 check_ad() {
-  ping -c 1 -t $PING_TIMEOUT "\$DOMAIN_CONTROLLER" >/dev/null 2>&1
+  if ! ping -c 1 -t $PING_TIMEOUT "\$DOMAIN_CONTROLLER" >/dev/null 2>&1; then
+    echo "[\$(timestamp)] AD check failed." >&2
+    return 1
+  fi
+
   return \$?
 }
 
 check_internet() {
-  ping -c 1 -t $PING_TIMEOUT 8.8.8.8 >/dev/null 2>&1
+  if ! ping -c 1 -t $PING_TIMEOUT 8.8.8.8 >/dev/null 2>&1; then
+    echo "[\$(timestamp)] Internet check failed." >&2
+    return 1
+  fi
+
   return \$?
 }
 
+echo "[\$(timestamp)] Executing script ..."
+
+check_log "$LOG_BASE.log"
+check_log "$LOG_BASE.err"
+
 if ! check_ad; then
-  echo "\$(date): Not connected to \$DOMAIN_CONTROLLER. Exiting."
+  echo "[\$(timestamp)] Not connected to \$DOMAIN_CONTROLLER. Exiting ..."
   exit 0
 fi
 
 if ! check_internet; then
   if klist -s 2>/dev/null; then
-    echo "\$(date): Destroying ticket ..."
+    echo "[\$(timestamp)] Destroying ticket ..."
     kdestroy
   fi
 
+  echo "[\$(timestamp)] Creating ticket ..."
   kinit --keychain "\$USERNAME@\$DOMAIN"
 fi
-
 EOF
 
     chmod +x "$SCRIPT_PATH"
@@ -93,9 +120,9 @@ init_plist() {
   <key>RunAtLoad</key>
   <true/>
   <key>StandardOutPath</key>
-  <string>$HOME/Library/Logs/$LABEL.log</string>
+  <string>$LOG_BASE.log</string>
   <key>StandardErrorPath</key>
-  <string>$HOME/Library/Logs/$LABEL.err</string>
+  <string>$LOG_BASE.err</string>
 </dict>
 </plist>
 EOF
@@ -142,8 +169,8 @@ uninstall() {
     echo "LaunchAgent plist removed."
   fi
 
-  [ -f "$HOME/Library/Logs/$LABEL.log" ] && rm "$HOME/Library/Logs/$LABEL.log"
-  [ -f "$HOME/Library/Logs/$LABEL.err" ] && rm "$HOME/Library/Logs/$LABEL.err"
+  [ -f "$LOG_BASE.log" ] && rm "$LOG_BASE.log"
+  [ -f "$LOG_BASE.err" ] && rm "$LOG_BASE.err"
 
   if [ -f "$SCRIPT_PATH" ]; then
     rm "$SCRIPT_PATH"
