@@ -78,11 +78,6 @@ if ! check_ad; then
 fi
 
 if ! check_internet; then
-  if klist -s 2>/dev/null; then
-    echo "[\$(timestamp)] Destroying ticket ..."
-    kdestroy
-  fi
-
   echo "[\$(timestamp)] Creating ticket ..."
   kinit --keychain "\$USERNAME@\$DOMAIN"
 fi
